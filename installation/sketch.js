@@ -4,8 +4,9 @@ let cameraDots = [];
 let clickedDots = [];
 let showVideo = false;
 
-let threshold = 60;
+let threshold = 120;
 let linkDist = 150;
+let t = 0;
 
 function setup() {
   createCanvas(windowWidth, windowHeight);
@@ -16,6 +17,7 @@ function setup() {
 
 function draw() {
   background(12, 14, 24);
+  t += 0.001;
 
   if (showVideo) {
     tint(255, 80);
@@ -26,32 +28,42 @@ function draw() {
   findDots();
   let dots = cameraDots.concat(clickedDots);
 
+
+
   // lines between close dots
-  stroke(215, 225, 255);
   strokeWeight(1.5);
   for (let a = 0; a < dots.length; a++) {
     for (let b = a + 1; b < dots.length; b++) {
-      if (dist(dots[a].x, dots[a].y, dots[b].x, dots[b].y) < linkDist) {
+      let d = dist(dots[a].x, dots[a].y, dots[b].x, dots[b].y);
+      if (d < linkDist) {
+        // noise at the middle of the line decides if it shows right now
+        let mx = (dots[a].x + dots[b].x) / 2;
+        let my = (dots[a].y + dots[b].y) / 2;
+        let n = noise(mx * 0.005, my * 0.005, t * 4);
+        let alpha = map(d, 0, linkDist, 255, 60) * map(n, 0.4, 0.6, 0, 1, true);
+        stroke(215, 225, 255, alpha);
         line(dots[a].x, dots[a].y, dots[b].x, dots[b].y);
       }
     }
   }
 
-  // the dots
+  // the dots, twinkling with noise
   noStroke();
-  fill(255);
   for (let d of dots) {
-    circle(d.x, d.y, 8);
+    let n = noise(d.x * 0.01, d.y * 0.01, t * 4);
+    fill(255, 150 + n * 105);
+    circle(d.x, d.y, 5 + n * 5);
   }
 }
 
 function findDots() {
   cameraDots = [];
   video.loadPixels();
+  if (video.elt.readyState < 2) return;
 
-  // check every 4th pixel
-  for (let y = 0; y < video.height; y += 4) {
-    for (let x = 0; x < video.width; x += 4) {
+  // check every 2nd pixel
+  for (let y = 0; y < video.height; y += 2) {
+    for (let x = 0; x < video.width; x += 2) {
       let i = (y * video.width + x) * 4;
       let brightness = (video.pixels[i] + video.pixels[i + 1] + video.pixels[i + 2]) / 3;
 
